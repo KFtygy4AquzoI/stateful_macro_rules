@@ -198,25 +198,26 @@ impl StatefulMacroRule {
             None => s.pat.clone(),
         });
         let initial_state = self.map_flatten_state(|_, s| s.default.clone());
-        let call_self = quote! { #dollar crate::#private_name ! };
+        //let call_self = quote! { #dollar crate::#private_name ! };
+        let call_self = quote! { #private_name ! };
         let rules = self.generate_rule_code(&call_self)?;
         let attributes = &self.attributes;
         let return_block = &conclude.body;
         let q = quote! {
-            #[macro_export]
             #attributes
             macro_rules! #name {
                 { #dollar( #tt:tt )* } => {
-                    #call_self ([ #dollar( #tt )* ] { #initial_state })
+                    #call_self {[ #dollar( #tt )* ] { #initial_state }}
                 };
             }
+            pub(crate) use #name;
 
             #[doc(hidden)]
-            #[macro_export]
             macro_rules! #private_name {
                 ([] {#input_state}) => { #return_block };
                 #rules
             }
+            pub(crate) use #private_name;
         };
 
         Ok(q)
@@ -260,7 +261,7 @@ impl StatefulMacroRule {
             let input_state = flatten(input_state.into_iter());
             rules.push(quote! {
                 ([#input_pat] {#input_state}) => {
-                    #call_self ([#dotdotdot] {#output_state})
+                    #call_self {[#dotdotdot] {#output_state}}
                 };
             })
         }
